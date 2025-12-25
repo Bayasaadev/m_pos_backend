@@ -8,6 +8,16 @@ This guide will help you deploy your POS demo backend to Render's free tier.
 2. Your code pushed to a GitHub repository
 3. A Render account (sign up at https://render.com - it's free)
 
+## Step 0: Ensure Dockerfile is Committed
+
+Make sure the `Dockerfile` and `.dockerignore` files are in your repository:
+
+```bash
+git add Dockerfile .dockerignore
+git commit -m "Add Dockerfile for Render deployment"
+git push
+```
+
 ## Step 1: Push Your Code to GitHub
 
 If you haven't already:
@@ -54,10 +64,12 @@ git push -u origin main
    - **Region**: Same as database
    - **Branch**: `main` (or your default branch)
    - **Root Directory**: Leave empty (or `.` if needed)
-   - **Environment**: **Java**
-   - **Build Command**: `./mvnw clean package -DskipTests`
-   - **Start Command**: `java -jar target/pos-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod`
+   - **Environment**: **Docker** (select "Docker" from the Language dropdown)
+   - **Dockerfile Path**: `Dockerfile` (leave as default, or specify if in subdirectory)
+   - **Docker Build Context**: `.` (leave as default)
    - **Plan**: **Free**
+   
+   **Note**: Since "Java" option is not available, we're using Docker which will build and run your Spring Boot app.
 
 4. **Environment Variables** (click "Advanced"):
    Add these variables:
@@ -99,6 +111,25 @@ const String BASE_URL = 'https://pos-backend.onrender.com';
 ```
 
 ## Troubleshooting
+
+### Docker Build Issues
+**Problem**: Docker build fails or can't find the JAR file.
+
+**Solution**:
+- Ensure `Dockerfile` is in the root of your repository
+- Make sure Maven build completes successfully (check build logs)
+- Verify `target/pos-0.0.1-SNAPSHOT.jar` is created during build
+- If using a different JAR name, update the `COPY` command in Dockerfile
+
+### Build Command Issues
+- Ensure `mvnw` and `mvnw.cmd` files are committed to your repo
+- Build command should be: `chmod +x ./mvnw && ./mvnw clean package -DskipTests`
+- If `mvnw` is missing, commit it:
+  ```bash
+  git add mvnw mvnw.cmd .mvn/
+  git commit -m "Add Maven wrapper"
+  git push
+  ```
 
 ### Build Fails
 - Check build logs in Render dashboard
