@@ -23,15 +23,36 @@ public class DatabaseConfig {
         }
 
         // Render provides DATABASE_URL in format: postgresql://user:password@host:port/database
+        // Or sometimes: postgresql://user:password@host/database (no port)
         // Convert to JDBC format: jdbc:postgresql://host:port/database
         try {
             URI dbUri = new URI(databaseUrl);
             
-            String username = dbUri.getUserInfo().split(":")[0];
-            String password = dbUri.getUserInfo().split(":")[1];
+            String userInfo = dbUri.getUserInfo();
+            if (userInfo == null || !userInfo.contains(":")) {
+                throw new IllegalStateException("DATABASE_URL must contain username:password");
+            }
+            
+            String[] credentials = userInfo.split(":", 2);
+            String username = credentials[0];
+            String password = credentials.length > 1 ? credentials[1] : "";
+            
             String host = dbUri.getHost();
+            if (host == null) {
+                throw new IllegalStateException("DATABASE_URL must contain a valid host");
+            }
+            
             int port = dbUri.getPort();
-            String database = dbUri.getPath().substring(1); // Remove leading '/'
+            // If port is -1 (not specified), use default PostgreSQL port 5432
+            if (port == -1) {
+                port = 5432;
+            }
+            
+            String path = dbUri.getPath();
+            if (path == null || path.isEmpty() || path.equals("/")) {
+                throw new IllegalStateException("DATABASE_URL must contain a database name");
+            }
+            String database = path.startsWith("/") ? path.substring(1) : path;
             
             String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", host, port, database);
             
@@ -42,7 +63,7 @@ public class DatabaseConfig {
                     .driverClassName("org.postgresql.Driver")
                     .build();
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to parse DATABASE_URL: " + databaseUrl, e);
+            throw new IllegalStateException("Failed to parse DATABASE_URL: " + databaseUrl + ". Error: " + e.getMessage(), e);
         }
     }
 }
